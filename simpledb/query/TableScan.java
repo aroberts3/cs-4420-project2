@@ -27,6 +27,10 @@ public class TableScan implements UpdateScan {
       sch = ti.schema();
    }
    
+   // Returns the number of blocks in the file
+   public int size(){
+     return rf.getNumBlocks();
+   }
    // Scan methods
    
    public void beforeFirst() {

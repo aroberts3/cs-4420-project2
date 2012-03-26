@@ -144,6 +144,10 @@ public class RecordFile {
       int id = rp.currentId();
       return new RID(currentblknum, id);
    }
+
+   public int getNumBlocks(){
+     return tx.size(filename);
+   }
    
    private void moveTo(int b) {
       if (rp != null)
