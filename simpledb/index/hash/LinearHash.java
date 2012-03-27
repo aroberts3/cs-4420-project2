@@ -7,12 +7,13 @@ import simpledb.index.Index;
 import java.util.ArrayList;
 
 public class LinearHash implements Index{
-  public int num_buckets = 1;
-  private int expandConstant;
+  public int numBuckets = 1;
+  private int expandConstant = 1;
   private int splitPointer = 0; // next bucket to be split
+  private int splitReset = 1;
   private int level = 0;
   private ArrayList<TableScan> buckets = new ArrayList<TableScan>();
-  private ArrayList buckets_blocks = new ArrayList();
+  private ArrayList<Integer> buckets_blocks = new ArrayList<Integer>();
   private int currentBucketNum;
   private String idxname;
   private Schema sch;
@@ -39,11 +40,11 @@ public class LinearHash implements Index{
     ts = new TableScan(ti, tx);
     if(bucket >= buckets.size()){
       buckets.add(bucket, ts);
-      buckets_blocks.add(bucket, ts.size());
+      buckets_blocks.add(bucket, new Integer(ts.size()));
     }
     else{
       buckets.set(bucket, ts);
-      buckets_blocks.set(bucket, ts.size());
+      buckets_blocks.set(bucket, new Integer(ts.size()));
     }
   }
 
@@ -70,7 +71,39 @@ public class LinearHash implements Index{
     ts.setVal("dataval", val);
     // update buckets and buckets_blocks number
     buckets.set(currentBucketNum, ts);
-    buckets_blocks.set(currentBucketNum, ts.size());
+    if( buckets_blocks.get(currentBucketNum) < ts.size()){
+      // overflow block created, expand the split bucket
+      buckets_blocks.set(currentBucketNum, 0);
+      expand();
+    }
+    else{
+      buckets_blocks.set(currentBucketNum, ts.size());
+    }
+  }
+
+  // Expands the bucket pointed to by the splitPointer
+  public void expand(){
+    ts = buckets.get(splitPointer);
+    incrementSplitPointer();
+
+    int bucket = numBuckets;
+    String tblname = idxname + bucket;
+    numBuckets++;
+    TableInfo ti = new TableInfo(tblname, sch);
+    TableScan newTs = new TableScan(ti, tx);
+    buckets.set(bucket, newTs);
+    buckets_blocks.set(bucket, newTs.size());
+
+    ts.beforeFirst();
+    while(ts.next()){
+      // rehash all of the records in ts
+      int block = ts.getInt("block");
+      int id = ts.getInt("id");
+      RID rid = new RID(block, id);
+      Constant dataval = ts.getVal("dataval");
+      ts.delete();
+      insert(dataval, rid);
+    }
   }
 
   // Closes the index by closing the current table scan
