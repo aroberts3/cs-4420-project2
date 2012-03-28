@@ -46,11 +46,16 @@ public class RecordFile {
       moveTo(0);
    }
    
+   public int getSize() {
+       return tx.size(filename);
+   }
+   
    /**
     * Moves to the next record. Returns false if there
     * is no next record.
     * @return false if there is no next record.
     */
+   /*
    public boolean next() {
       while (true) {
          if (rp.next())
@@ -59,7 +64,7 @@ public class RecordFile {
             return false;
          moveTo(currentblknum + 1);
       }
-   }
+   }*/
    
    /**
     * Returns the value of the specified field
@@ -145,9 +150,6 @@ public class RecordFile {
       return new RID(currentblknum, id);
    }
 
-   public int getNumBlocks(){
-     return tx.size(filename);
-   }
    
    private void moveTo(int b) {
       if (rp != null)
