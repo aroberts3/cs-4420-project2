@@ -83,6 +83,8 @@ public class LinearHash implements Index{
 
   // Expands the bucket pointed to by the splitPointer
   public void expand(){
+    printIndex();
+
     ts = buckets.get(splitPointer);
     incrementSplitPointer();
 
@@ -104,6 +106,8 @@ public class LinearHash implements Index{
       ts.delete();
       insert(dataval, rid);
     }
+
+    printIndex();
   }
 
   // Closes the index by closing the current table scan
@@ -119,6 +123,36 @@ public class LinearHash implements Index{
   }
 
   public void delete(Constant key, RID rid){
+  }
+
+  public void printIndex(){
+    close();
+    System.out.printf("Level: %d \t Next: %d", level, splitPointer);
+    int len = buckets.size();
+    int i;
+    int block;
+    boolean overflow = false;
+    for(i=0; i<len; i++){
+      ts = buckets.get(i);
+      ts.beforeFirst();
+      System.out.printf("Bucket #%d\n", i);
+      while(ts.next()){
+        block = ts.currentBlock();
+        if(block==0){
+          // Not in the overflow blocks
+          System.out.printf("%d \t", ts.getInt("id"));
+        }
+        else{
+          if(!overflow){
+            System.out.println();
+            System.out.printf("Bucket #%d overflow\n", i);
+            overflow = true;
+          }
+          System.out.printf("%d \t", ts.getInt("id"));
+        }
+      }
+      System.out.println("\n"); // white space between buckets
+    }
   }
 
   private void incrementSplitPointer(){

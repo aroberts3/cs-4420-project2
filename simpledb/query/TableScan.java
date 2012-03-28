@@ -31,6 +31,11 @@ public class TableScan implements UpdateScan {
    public int size(){
      return rf.getNumBlocks();
    }
+
+   // Returns te current block of the file
+   public int currentBlock(){
+     return rf.getBlockNum();
+   }
    // Scan methods
    
    public void beforeFirst() {

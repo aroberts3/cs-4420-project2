@@ -148,6 +148,10 @@ public class RecordFile {
    public int getNumBlocks(){
      return tx.size(filename);
    }
+
+   public int getBlockNum(){
+     return currentblknum;
+   }
    
    private void moveTo(int b) {
       if (rp != null)
