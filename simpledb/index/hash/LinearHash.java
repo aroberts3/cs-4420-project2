@@ -58,15 +58,15 @@ public class LinearHash implements Index{
   }
 
   public void insert(Constant val, RID rid){
-	//preserve current TableScan
-	TableScan prev = ts;
+    //preserve current TableScan
+    TableScan prev = ts;
     beforeFirst(val);
-    int initialBlocks = ts.size();
+    int initialBlocks = ts.getSize();
     ts.insert();
     ts.setInt("block", rid.blockNumber());
     ts.setInt("id", rid.id());
     ts.setVal("dataval", val);
-    int finalBlocks = ts.size();
+    int finalBlocks = ts.getSize();
     ts = prev;
     if(finalBlocks>initialBlocks){
       expand();
@@ -114,12 +114,14 @@ public class LinearHash implements Index{
   public void printIndex(){
     close();
     System.out.printf("Level: %d \t Next: %d", level, splitPointer);
-    int len = buckets.size();
+    int len = numBuckets;
     int i;
     int block;
     boolean overflow = false;
     for(i=0; i<len; i++){
-      ts = buckets.get(i);
+      String tblname = idxname + i;
+      TableInfo ti = new TableInfo(tblname, sch);
+      ts = new TableScan(ti, tx);
       ts.beforeFirst();
       System.out.printf("Bucket #%d\n", i);
       while(ts.next()){
