@@ -10,11 +10,7 @@ public class LinearHash implements Index{
   public int numBuckets = 1;
   private int expandConstant = 1;
   private int splitPointer = 0; // next bucket to be split
-  private int splitReset = 1;
   private int level = 0;
-  private ArrayList<TableScan> buckets = new ArrayList<TableScan>();
-  private ArrayList<Integer> buckets_blocks = new ArrayList<Integer>();
-  private int currentBucketNum;
   private String idxname;
   private Schema sch;
   private Transaction tx;
@@ -36,16 +32,14 @@ public class LinearHash implements Index{
     }
     String tblname = idxname + bucket;
     TableInfo ti = new TableInfo(tblname, sch);
-    currentBucketNum = bucket;
     ts = new TableScan(ti, tx);
-    if(bucket >= buckets.size()){
-      buckets.add(bucket, ts);
-      buckets_blocks.add(bucket, new Integer(ts.size()));
-    }
-    else{
-      buckets.set(bucket, ts);
-      buckets_blocks.set(bucket, new Integer(ts.size()));
-    }
+  }
+  
+  //sets the current tablescan to the bucket that will be split
+  public void setSplitBucket(){
+	  String tblname = idxname + splitPointer;
+	  TableInfo ti = new TableInfo(tblname,sch);
+	  ts = new TableScan(ti,tx);  
   }
 
   public boolean next(){
@@ -64,20 +58,18 @@ public class LinearHash implements Index{
   }
 
   public void insert(Constant val, RID rid){
+	//preserve current TableScan
+	TableScan prev = ts;
     beforeFirst(val);
+    int initialBlocks = ts.size();
     ts.insert();
     ts.setInt("block", rid.blockNumber());
     ts.setInt("id", rid.id());
     ts.setVal("dataval", val);
-    // update buckets and buckets_blocks number
-    buckets.set(currentBucketNum, ts);
-    if( buckets_blocks.get(currentBucketNum) < ts.size()){
-      // overflow block created, expand the split bucket
-      buckets_blocks.set(currentBucketNum, 0);
+    int finalBlocks = ts.size();
+    ts = prev;
+    if(finalBlocks>initialBlocks){
       expand();
-    }
-    else{
-      buckets_blocks.set(currentBucketNum, ts.size());
     }
   }
 
@@ -85,18 +77,9 @@ public class LinearHash implements Index{
   public void expand(){
     printIndex();
 
-    ts = buckets.get(splitPointer);
-    incrementSplitPointer();
-
-    int bucket = numBuckets;
-    String tblname = idxname + bucket;
     numBuckets++;
-    TableInfo ti = new TableInfo(tblname, sch);
-    TableScan newTs = new TableScan(ti, tx);
-    buckets.set(bucket, newTs);
-    buckets_blocks.set(bucket, newTs.size());
+    setSplitBucket();
 
-    ts.beforeFirst();
     while(ts.next()){
       // rehash all of the records in ts
       int block = ts.getInt("block");
@@ -106,8 +89,8 @@ public class LinearHash implements Index{
       ts.delete();
       insert(dataval, rid);
     }
-
     printIndex();
+    incrementSplitPointer();
   }
 
   // Closes the index by closing the current table scan
@@ -118,11 +101,14 @@ public class LinearHash implements Index{
   }
 
   public int address(int lvl, Constant key){
-    int bucket = key.hashCode() % (2^lvl);
+    int bucket = key.hashCode() % ((2^lvl)*numBuckets);
     return bucket;
   }
+ 
+  
 
   public void delete(Constant key, RID rid){
+	  return;
   }
 
   public void printIndex(){
