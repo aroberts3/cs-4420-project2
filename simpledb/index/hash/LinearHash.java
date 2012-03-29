@@ -52,8 +52,10 @@ public class LinearHash implements Index{
   
   public RID search(Constant searchkey){
 	  beforeFirst(searchkey);
-	  if(next()){
-		  return ts.getRid();
+	  while(ts.next()){
+      if(ts.getVal("dataval").equals(searchkey)){
+        return new RID(ts.getInt("block"), ts.getInt("id"));
+      }
 	  }
 	  return null;
   }
