@@ -31,8 +31,9 @@ public class HashDriver{
 	  LinearHash idx = new LinearHash("hashIdxTest", idxsch, tx);
 	  Plan p = new TablePlan("messy", tx);
 	  UpdateScan s = (UpdateScan) p.open();
-	  while (s.next())
+	  while (s.next()){
 	      idx.insert(s.getVal("col2"), s.getRid());
+	  }
 	  s.close();
 	  Scanner scan = new Scanner(System.in);
 	  while(true){
@@ -56,5 +57,7 @@ public class HashDriver{
 		  }
 	  }
 	  idx.close();
+	  tx.rollback();
+	  tx2.rollback();
 	}
 }

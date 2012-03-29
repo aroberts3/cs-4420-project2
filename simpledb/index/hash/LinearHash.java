@@ -47,7 +47,7 @@ public class LinearHash implements Index{
 	  ts.close();
 	  String tblname = idxname + splitPointer;
 	  TableInfo ti = new TableInfo(tblname,sch);
-	  ts = new TableScan(ti,tx);  
+	  ts = new TableScan(ti,tx);
   }
   
   public RID search(Constant searchkey){
@@ -78,6 +78,7 @@ public class LinearHash implements Index{
 	int bucket = address(val);
 	int numRecords = records[bucket];
     beforeFirst(val); 
+    System.out.println("NEW INSERT INTO BUCKET " + bucket + "(previous size " + numRecords + ")");
     ts.insert();
     ts.setInt("block", rid.blockNumber());
     ts.setInt("id", rid.id());
@@ -93,6 +94,7 @@ public class LinearHash implements Index{
 
   // Expands the bucket pointed to by the splitPointer
   public void expand(){
+	System.out.println("BEGIN EXPAND");
 	close();
 	overflowCount=0;
 	numBuckets++;
@@ -103,7 +105,8 @@ public class LinearHash implements Index{
     ArrayList<RID> rids = new ArrayList<RID>();
     ArrayList<Constant> vals = new ArrayList<Constant>();
     int nextBucket = splitPointer + (int)Math.pow(2,level) * startingBuckets;
-    buckets[nextBucket]=1;
+    System.out.println("new bucket at location " + nextBucket);
+    buckets[nextBucket]=1;    
 
     //clear the bucket; contents are saved to be redistributed after
     while(ts.next()){
@@ -126,6 +129,7 @@ public class LinearHash implements Index{
     	insert(dv,r);
     }
     redistributing = false;
+    System.out.println("END EXPAND");
     System.out.println("\nAfter expand: \n-------------------------");
     printIndex();
   }
@@ -165,7 +169,6 @@ public class LinearHash implements Index{
 
   
   public void printIndex(){
-    close();
     System.out.printf("\n Level: %d \t Next: %d \n \n", level, splitPointer);
     int i;
     int block;
@@ -175,7 +178,9 @@ public class LinearHash implements Index{
     	if(buckets[i]==0){
     		continue;
     	}
+      ts.close();
       String tblname = idxname + i;
+      System.out.println(tblname);
       TableInfo ti = new TableInfo(tblname, sch);
       ts = new TableScan(ti, tx);
       ts.beforeFirst();
@@ -198,6 +203,7 @@ public class LinearHash implements Index{
       }
       System.out.println("\n"); // white space between buckets
     }
+    System.out.println("done");
   }
 
   private void incrementSplitPointer(){
