@@ -10,9 +10,11 @@ import java.util.ArrayList;
 public class LinearHash implements Index{
   public int numBuckets = 1;
   private int overflowCount = 0;
-  private int expandConstant = 1;
+  private int maxOverflow = 1;
+  private int blockSize = 5; //max records per block
   private int splitPointer = 0; // next bucket to be split
   private boolean redistributing = false; //additional expands will not be performed mid-expand
+  private ArrayList<Integer> records = new ArrayList<Integer>(); //number of records in each bucket including overflow
   private int level = 0;
   private String idxname;
   private Schema sch;
@@ -29,10 +31,7 @@ public class LinearHash implements Index{
   public void beforeFirst(Constant searchkey){
     close();
     this.searchkey = searchkey;
-    int bucket = address(level, searchkey);
-    if (bucket < splitPointer){
-      bucket = address(level+1, searchkey);
-    }
+    int bucket = address(searchkey);
     String tblname = idxname + bucket;
     TableInfo ti = new TableInfo(tblname, sch);
     ts = new TableScan(ti, tx);
@@ -61,17 +60,26 @@ public class LinearHash implements Index{
   }
 
   public void insert(Constant val, RID rid){
-	System.out.println("---");
-    beforeFirst(val);
-    int initialBlocks = ts.getSize();
+	close();
+	if(records.size()==0){
+		growArray(100);
+	}
+	System.out.println("--");
+	int bucket = address(val);
+	int numRecords = records.get(bucket);
+    beforeFirst(val); 
     ts.insert();
     ts.setInt("block", rid.blockNumber());
     ts.setInt("id", rid.id());
     ts.setVal("dataval", val);
-    int finalBlocks = ts.getSize();
-    if((finalBlocks>initialBlocks)&&(!redistributing)){
+    records.set(bucket,numRecords+1);
+    System.out.println(bucket);
+    System.out.println(val);
+    System.out.println(records.get(bucket));
+    if(((numRecords+1)>(blockSize))&&(!redistributing)){
     	overflowCount++;
-    	if(overflowCount==expandConstant){
+    	if(overflowCount==maxOverflow){
+    		records.set(bucket, 0);
     		expand();
     	}
     }
@@ -79,10 +87,10 @@ public class LinearHash implements Index{
 
   // Expands the bucket pointed to by the splitPointer
   public void expand(){
+	close();
 	System.out.println("expand");
 	overflowCount=0;
     //printIndex();
-    numBuckets++;
     setSplitBucket();
     ArrayList<RID> rids = new ArrayList<RID>();
     ArrayList<Constant> vals = new ArrayList<Constant>();
@@ -98,6 +106,8 @@ public class LinearHash implements Index{
       ts.delete();
     }
     
+    incrementSplitPointer();
+    
     //rehash contents of split bucket
     redistributing = true;
     for(int i = 0; i<rids.size(); i++){
@@ -110,7 +120,6 @@ public class LinearHash implements Index{
     System.out.println("end expand");
     
     //printIndex();
-    incrementSplitPointer();
   }
 
   // Closes the index by closing the current table scan
@@ -120,9 +129,20 @@ public class LinearHash implements Index{
     }
   }
 
-  public int address(int lvl, Constant key){
-    int bucket = key.hashCode() % ((int)(Math.pow(2,level))*numBuckets);
-    return bucket;
+  public int address(Constant key){
+    double bucket = (key.hashCode() % (Math.pow(2,level)*numBuckets));
+    if (bucket<splitPointer){
+    	bucket = (key.hashCode() % ((int)(Math.pow(2,level+1))*numBuckets));
+    }
+    return (int)bucket;
+  }
+  
+  public void growArray(int i){
+	  int l = records.size();
+	  while(l<i+1){
+		  records.add(0);
+		  l++;
+	  }
   }
  
   
@@ -131,6 +151,7 @@ public class LinearHash implements Index{
 	  return;
   }
 
+  
   public void printIndex(){
     close();
     System.out.printf("Level: %d \t Next: %d", level, splitPointer);
@@ -164,10 +185,9 @@ public class LinearHash implements Index{
   }
 
   private void incrementSplitPointer(){
-    splitPointer++;
-    if (splitPointer == Math.pow(2,level)){
+    splitPointer = (int)((splitPointer+1)%(Math.pow(2,level)));
+    if (splitPointer == 0){
       level++;
-      splitPointer = 0;
     }
   }
 }
