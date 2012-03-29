@@ -5,11 +5,14 @@ import simpledb.record.*;
 import simpledb.query.*;
 import simpledb.index.Index;
 
+import java.util.ArrayList;
+
 public class LinearHash implements Index{
   public int numBuckets = 1;
   private int overflowCount = 0;
   private int expandConstant = 1;
   private int splitPointer = 0; // next bucket to be split
+  private boolean redistributing = false; //additional expands will not be performed mid-expand
   private int level = 0;
   private String idxname;
   private Schema sch;
@@ -58,8 +61,7 @@ public class LinearHash implements Index{
   }
 
   public void insert(Constant val, RID rid){
-    //preserve current TableScan
-    TableScan prev = ts;
+	System.out.println("---");
     beforeFirst(val);
     int initialBlocks = ts.getSize();
     ts.insert();
@@ -67,8 +69,7 @@ public class LinearHash implements Index{
     ts.setInt("id", rid.id());
     ts.setVal("dataval", val);
     int finalBlocks = ts.getSize();
-    ts = prev;
-    if(finalBlocks>initialBlocks){
+    if((finalBlocks>initialBlocks)&&(!redistributing)){
     	overflowCount++;
     	if(overflowCount==expandConstant){
     		expand();
@@ -78,21 +79,37 @@ public class LinearHash implements Index{
 
   // Expands the bucket pointed to by the splitPointer
   public void expand(){
-	overflowCount++;
-    printIndex();
+	System.out.println("expand");
+	overflowCount=0;
+    //printIndex();
     numBuckets++;
     setSplitBucket();
+    ArrayList<RID> rids = new ArrayList<RID>();
+    ArrayList<Constant> vals = new ArrayList<Constant>();
 
+    //clear the bucket; contents are saved to be redistributed after
     while(ts.next()){
-      // rehash all of the records in ts
       int block = ts.getInt("block");
       int id = ts.getInt("id");
       RID rid = new RID(block, id);
       Constant dataval = ts.getVal("dataval");
+      rids.add(rid);
+      vals.add(dataval); 
       ts.delete();
-      insert(dataval, rid);
     }
-    printIndex();
+    
+    //rehash contents of split bucket
+    redistributing = true;
+    for(int i = 0; i<rids.size(); i++){
+    	RID r = rids.get(i);
+    	Constant dv = vals.get(i);
+    	insert(dv,r);
+    }
+    redistributing = false;
+    
+    System.out.println("end expand");
+    
+    //printIndex();
     incrementSplitPointer();
   }
 
@@ -104,7 +121,7 @@ public class LinearHash implements Index{
   }
 
   public int address(int lvl, Constant key){
-    int bucket = key.hashCode() % ((2^lvl)*numBuckets);
+    int bucket = key.hashCode() % ((int)(Math.pow(2,level))*numBuckets);
     return bucket;
   }
  
