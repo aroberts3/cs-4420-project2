@@ -52,7 +52,7 @@ public class HashDriver{
 		      TableInfo ti = new TableInfo(tblname, messySch);
 		      ts = new TableScan(ti, tx2);
 		      ts.moveToRid(rid);
-		      System.out.println(ts.getInt("col1")+str);
+		      System.out.println(ts.getInt("col1")+"\t"+ts.getVal("col2"));
 		      ts.close();
 		  }
 	  }
