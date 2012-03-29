@@ -79,7 +79,6 @@ public class LinearHash implements Index{
     if(((numRecords+1)>(blockSize))&&(!redistributing)){
     	overflowCount++;
     	if(overflowCount==maxOverflow){
-    		records.set(bucket, 0);
     		expand();
     	}
     }
@@ -90,6 +89,7 @@ public class LinearHash implements Index{
 	close();
 	System.out.println("expand");
 	overflowCount=0;
+	records.set(splitPointer, 0);
     //printIndex();
     setSplitBucket();
     ArrayList<RID> rids = new ArrayList<RID>();
