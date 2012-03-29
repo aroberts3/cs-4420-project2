@@ -48,10 +48,21 @@ public class LinearHash implements Index{
 	  TableInfo ti = new TableInfo(tblname,sch);
 	  ts = new TableScan(ti,tx);  
   }
+  
+  public RID search(Constant searchkey){
+	  beforeFirst(searchkey);
+	  if(next()){
+		  return ts.getRid();
+	  }
+	  return null;
+  }
 
   public boolean next(){
+	  System.out.println(searchkey);
     while(ts.next()){
+    	System.out.println(ts.getVal("dataval"));
       if(ts.getVal("dataval").equals(searchkey)){
+    	  System.out.println("HERE");
         return true;
       }
     }

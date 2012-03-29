@@ -2,6 +2,7 @@ import simpledb.server.*;
 import simpledb.index.*;
 import simpledb.index.hash.*;
 import simpledb.query.*;
+import simpledb.record.RID;
 import simpledb.record.Schema;
 import simpledb.tx.Transaction;
 import java.util.Scanner;
@@ -20,7 +21,7 @@ public class HashDriver{
 	  idxsch.addIntField("block");
 	  idxsch.addIntField("id"); 
 	  // Builds a Linear Hash Index on Col2 of the messy table 
-	  Index idx = new LinearHash("hashIdxTest", idxsch, tx);
+	  LinearHash idx = new LinearHash("hashIdxTest", idxsch, tx);
 	  Plan p = new TablePlan("messy", tx);
 	  UpdateScan s = (UpdateScan) p.open();
 	  while (s.next())
@@ -29,10 +30,20 @@ public class HashDriver{
 	  idx.close();
 	  tx.rollback();
 	  Scanner scan = new Scanner(System.in);
-	  /*
 	  while(true){
-		  Constant searchKey = (Constant)scan.next();
-		  System.out.println(idx.search(searchKey));	  
-	  }*/
+		  System.out.println("Enter searchkey: (q to quit)");
+		  String str = scan.next();
+		  if((str.equals("q"))||(str.equals("quit"))){
+			  break;
+		  }
+		  Constant searchkey = new StringConstant(str);
+		  RID rid = idx.search(searchkey);
+		  if (rid==null){
+			  System.out.println("Not Found");
+		  }
+		  else{
+			  System.out.println("Record Exists");
+		  }
+	  }
 	}
 }
