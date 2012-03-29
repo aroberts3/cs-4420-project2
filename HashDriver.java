@@ -26,11 +26,8 @@ public class HashDriver{
 	  UpdateScan s = (UpdateScan) p.open();
 	  while (s.next())
 	      idx.insert(s.getVal("col2"), s.getRid());
-	  s.close(); 
-	  idx.close();
-	  tx.rollback();
+	  s.close();
 	  Scanner scan = new Scanner(System.in);
-	  /*
 	  while(true){
 		  System.out.println("Enter searchkey: (q to quit)");
 		  String str = scan.next();
@@ -45,6 +42,8 @@ public class HashDriver{
 		  else{
 			  System.out.println("Record Exists");
 		  }
-	  }*/
+	  }
+	  idx.close();
+	  tx.rollback();
 	}
 }

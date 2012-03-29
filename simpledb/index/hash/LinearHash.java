@@ -58,11 +58,8 @@ public class LinearHash implements Index{
   }
 
   public boolean next(){
-	  System.out.println(searchkey);
     while(ts.next()){
-    	System.out.println(ts.getVal("dataval"));
       if(ts.getVal("dataval").equals(searchkey)){
-    	  System.out.println("HERE");
         return true;
       }
     }
