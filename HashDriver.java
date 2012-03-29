@@ -30,6 +30,7 @@ public class HashDriver{
 	  idx.close();
 	  tx.rollback();
 	  Scanner scan = new Scanner(System.in);
+	  /*
 	  while(true){
 		  System.out.println("Enter searchkey: (q to quit)");
 		  String str = scan.next();
@@ -44,6 +45,6 @@ public class HashDriver{
 		  else{
 			  System.out.println("Record Exists");
 		  }
-	  }
+	  }*/
 	}
 }

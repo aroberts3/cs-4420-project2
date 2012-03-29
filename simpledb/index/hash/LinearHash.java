@@ -104,7 +104,7 @@ public class LinearHash implements Index{
     setSplitBucket();
     ArrayList<RID> rids = new ArrayList<RID>();
     ArrayList<Constant> vals = new ArrayList<Constant>();
-    int nextBucket = (int)Math.pow(2,level) * startingBuckets;
+    int nextBucket = splitPointer + (int)Math.pow(2,level) * startingBuckets;
     buckets[nextBucket]=1;
 
     //clear the bucket; contents are saved to be redistributed after
