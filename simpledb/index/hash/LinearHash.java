@@ -44,6 +44,7 @@ public class LinearHash implements Index{
   
   //sets the current tablescan to the bucket that will be split
   public void setSplitBucket(){
+	  ts.close();
 	  String tblname = idxname + splitPointer;
 	  TableInfo ti = new TableInfo(tblname,sch);
 	  ts = new TableScan(ti,tx);  

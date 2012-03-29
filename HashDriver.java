@@ -25,8 +25,8 @@ public class HashDriver{
 	  idxsch.addStringField("dataval",64);
 	  idxsch.addIntField("block");
 	  idxsch.addIntField("id"); 
-	  messySch.addStringField("col2",64);
 	  messySch.addIntField("col1");
+	  messySch.addStringField("col2",64);
 	  // Builds a Linear Hash Index on Col2 of the messy table 
 	  LinearHash idx = new LinearHash("hashIdxTest", idxsch, tx);
 	  Plan p = new TablePlan("messy", tx);
@@ -34,7 +34,6 @@ public class HashDriver{
 	  while (s.next())
 	      idx.insert(s.getVal("col2"), s.getRid());
 	  s.close();
-	  tx.commit();
 	  Scanner scan = new Scanner(System.in);
 	  while(true){
 		  System.out.println("Enter searchkey: (q to quit)");
@@ -52,11 +51,10 @@ public class HashDriver{
 		      TableInfo ti = new TableInfo(tblname, messySch);
 		      ts = new TableScan(ti, tx2);
 		      ts.moveToRid(rid);
-		      int c1 = ts.getInt("col1");
-		      System.out.println(c1);
+		      System.out.println(ts.getInt("col1")+str);
+		      ts.close();
 		  }
 	  }
 	  idx.close();
-	  tx.rollback();
 	}
 }
