@@ -4,10 +4,10 @@ import simpledb.tx.Transaction;
 import simpledb.record.*;
 import simpledb.query.*;
 import simpledb.index.Index;
-import java.util.ArrayList;
 
 public class LinearHash implements Index{
   public int numBuckets = 1;
+  private int overflowCount = 0;
   private int expandConstant = 1;
   private int splitPointer = 0; // next bucket to be split
   private int level = 0;
@@ -69,14 +69,17 @@ public class LinearHash implements Index{
     int finalBlocks = ts.getSize();
     ts = prev;
     if(finalBlocks>initialBlocks){
-      expand();
+    	overflowCount++;
+    	if(overflowCount==expandConstant){
+    		expand();
+    	}
     }
   }
 
   // Expands the bucket pointed to by the splitPointer
   public void expand(){
+	overflowCount++;
     printIndex();
-
     numBuckets++;
     setSplitBucket();
 
