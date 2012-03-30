@@ -53,9 +53,9 @@ public class LinearHash implements Index{
   public RID search(Constant searchkey){
 	  beforeFirst(searchkey);
 	  while(ts.next()){
-      if(ts.getVal("dataval").equals(searchkey)){
-        return new RID(ts.getInt("block"), ts.getInt("id"));
-      }
+	      if(ts.getVal("dataval").equals(searchkey)){
+	        return new RID(ts.getInt("block"), ts.getInt("id"));
+	      }
 	  }
 	  return null;
   }
@@ -80,7 +80,6 @@ public class LinearHash implements Index{
 	int bucket = address(val);
 	int numRecords = records[bucket];
     beforeFirst(val); 
-    System.out.println("NEW INSERT INTO BUCKET " + bucket + "(previous size " + numRecords + ")");
     ts.insert();
     ts.setInt("block", rid.blockNumber());
     ts.setInt("id", rid.id());
@@ -96,42 +95,42 @@ public class LinearHash implements Index{
 
   // Expands the bucket pointed to by the splitPointer
   public void expand(){
-	System.out.println("BEGIN EXPAND");
 	close();
+	ArrayList<RID> rids = new ArrayList<RID>();
+    ArrayList<Constant> vals = new ArrayList<Constant>();
+    int nextBucket;
+    int block;
+    int id;
+    int i;
+    Constant dataval;
+    RID rid;
 	overflowCount=0;
 	numBuckets++;
 	records[splitPointer]= 0;
 	System.out.println("\nBefore expand: \n-------------------------");
     printIndex();
     setSplitBucket();
-    ArrayList<RID> rids = new ArrayList<RID>();
-    ArrayList<Constant> vals = new ArrayList<Constant>();
-    int nextBucket = splitPointer + (int)Math.pow(2,level) * startingBuckets;
-    System.out.println("new bucket at location " + nextBucket);
-    buckets[nextBucket]=1;    
-
+    nextBucket = splitPointer + (int)Math.pow(2,level) * startingBuckets;
+    buckets[nextBucket]=1;
     //clear the bucket; contents are saved to be redistributed after
     while(ts.next()){
-      int block = ts.getInt("block");
-      int id = ts.getInt("id");
-      RID rid = new RID(block, id);
-      Constant dataval = ts.getVal("dataval");
+      block = ts.getInt("block");
+      id = ts.getInt("id");
+      rid = new RID(block, id);
+      dataval = ts.getVal("dataval");
       rids.add(rid);
       vals.add(dataval); 
       ts.delete();
-    }
-    
+    }   
     incrementSplitPointer();
-    
     //rehash contents of split bucket
     redistributing = true;
-    for(int i = 0; i<rids.size(); i++){
-    	RID r = rids.get(i);
-    	Constant dv = vals.get(i);
-    	insert(dv,r);
+    for(i = 0; i<rids.size(); i++){
+    	rid= rids.get(i);
+    	dataval = vals.get(i);
+    	insert(dataval,rid);
     }
     redistributing = false;
-    System.out.println("END EXPAND");
     System.out.println("\nAfter expand: \n-------------------------");
     printIndex();
   }
@@ -173,39 +172,42 @@ public class LinearHash implements Index{
   public void printIndex(){
     System.out.printf("\n Level: %d \t Next: %d \n \n", level, splitPointer);
     int i;
-    int block;
+    int recs;	//count the records as we print them so we know when we are in the overflow
     String val;
-    boolean overflow = false;
+    String tblname;
+    TableInfo ti;
+    boolean overflow;
     for(i=0; i<buckets.length; i++){
-    	if(buckets[i]==0){
-    		continue;
-    	}
-      ts.close();
-      String tblname = idxname + i;
-      System.out.println(tblname);
-      TableInfo ti = new TableInfo(tblname, sch);
-      ts = new TableScan(ti, tx);
-      ts.beforeFirst();
-      System.out.printf("Bucket #%d\n", i);
-      while(ts.next()){
-        block = ts.currentBlock();
-        if(block==0){
-          // Not in the overflow blocks
-        	val = ts.getVal("dataval").toString();
-        	System.out.printf(val.substring(val.length()-3) + "\t");
-        }
-        else{
-          if(!overflow){
-            System.out.printf("\nBucket #%d overflow\n", i);
-            overflow = true;
-          }
-          val = ts.getVal("dataval").toString();
-      	  System.out.printf(val.substring(val.length()-3) + "\t");
-        }
-      }
-      System.out.println("\n"); // white space between buckets
+		if(buckets[i]==0){
+			//this bucket is not in use and cannot contain any records
+			continue;
+		}
+		ts.close();
+		recs = 0;
+		overflow = false;
+		tblname = idxname + i;
+		ti = new TableInfo(tblname, sch);
+		ts = new TableScan(ti, tx);
+		ts.beforeFirst();
+		System.out.printf("Bucket #%d\n", i);
+		while(ts.next()){
+		    recs++;
+		    if(recs<=blockSize){
+			    // Not in the overflow blocks
+				val = ts.getVal("dataval").toString();
+				System.out.printf(val.substring(val.length()-3) + "\t");
+	    	}
+			else{
+			  if(!overflow){
+			    System.out.printf("\nBucket #%d overflow\n", i);
+			    overflow = true;
+			  }
+			  val = ts.getVal("dataval").toString();
+			  System.out.printf(val.substring(val.length()-3) + "\t");
+			}
+		}
+		System.out.println("\n"); // white space between buckets
     }
-    System.out.println("done");
   }
 
   private void incrementSplitPointer(){
